@@ -4,6 +4,7 @@ import humanfriendly
 import json
 import csv
 import matplotlib.pyplot as plt
+import re
 
 LOG_CMD = "log show --style syslog  --predicate 'senderImagePath contains[cd] \"TimeMachine\"' --info --last {time}"
 
@@ -17,21 +18,23 @@ class TimeMachineLogEntry:
         self.bytes_per_second = 0
         self.items_per_second = 0
         self.last_path_seen = ""
+        # Regex Documentation: https://regex101.com/r/waxd6A/1
+        self.regex = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{6})?).*Copied (\d+(?:[,|.]\d+)? [kmgtp]?b).* of (\d+(?:[,|.]\d+)? [kmgtp]?b), (\d+).*of (\d+) items \(~((?:-|\d+(?:[,|.]\d+)?) [kmgtp]?b[/]s), (-|\d+(?:[,|.]\d+)?) items[/]s\).*-(.*)", re.IGNORECASE)
         self.parse_log_line(line)
 
     def __repr__(self) -> str:
         return json.dumps(vars(self), indent=4, sort_keys=True, default=str)
 
     def parse_log_line(self, line) -> None:
-        vals = line.replace(',', '.').split(" ")
-        self.date_time = datetime.datetime.strptime(vals[0] + " " + vals[1][:-5], '%Y-%m-%d %H:%M:%S.%f')
-        self.bytes_copied = humanfriendly.parse_size(vals[8] + vals[9])
-        self.bytes_to_copy = humanfriendly.parse_size(vals[14] + vals[15][:-1])
-        self.items_copied = int(vals[16])
-        self.items_to_copy = int(vals[20])
-        self.bytes_per_second = humanfriendly.parse_size(("0" if vals[22][2:] == "-" else vals[22][2:]) + vals[23])
-        self.items_per_second = float(("0" if vals[24] == "-" else vals[24]))
-        self.last_path_seen = ' '.join(vals[35:])
+        groups = self.regex.match(line).groups()
+        self.date_time = datetime.datetime.strptime(groups[0], '%Y-%m-%d %H:%M:%S.%f')
+        self.bytes_copied = humanfriendly.parse_size(groups[1].replace(',', '.'))
+        self.bytes_to_copy = humanfriendly.parse_size(groups[2].replace(',', '.'))
+        self.items_copied = int(groups[3])
+        self.items_to_copy = int(groups[4])
+        self.bytes_per_second = humanfriendly.parse_size("0" if "-" in groups[5] else groups[5].replace(',', '.'))
+        self.items_per_second = float("0" if "-" in groups[6] else groups[6].replace(',', '.'))
+        self.last_path_seen = groups[7]
 
 class TimeMachineAnalyzer:
     def __init__(self, time_range):
@@ -88,13 +91,14 @@ class TimeMachineAnalyzer:
     def export_to_csv(self) -> None:
         with open('time_machine_log_entries.csv', mode='w') as time_machine_log_entries:
             employee_writer = csv.writer(time_machine_log_entries, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            employee_writer.writerow(['Date', 'Bytes Copied', 'Bytes to Copy', 'Items Copied', 'Bytes per Second', 'Items per Second', 'Last Path Seen'])
+            employee_writer.writerow(['Date', 'Bytes Copied', 'Bytes to Copy', 'Items Copied', 'Items to Copy', 'Bytes per Second', 'Items per Second', 'Last Path Seen'])
             for log_entry in self.timeMachineLogEntries:
                 employee_writer.writerow(
                     [
                         log_entry.date_time,
                         log_entry.bytes_copied,
                         log_entry.bytes_to_copy,
+                        log_entry.items_to_copy,
                         log_entry.items_copied,
                         log_entry.bytes_per_second,
                         log_entry.items_per_second,
