@@ -54,12 +54,15 @@ deactivate
 After the Application was running successfully the following three graphs are produced for analyzing the Time Machine:
 
 1. The first graph shows the Copy Speed of the Time Machine in MB/s and items/s to the Time Capsule or any other external drive:
+
 ![alt text](./examples/copy_speed.png "Time Machine Backup Copy Speed (MB/s)")
 
 2. The second graph shows how many GBs were already copied to the Backup drive and how much in total needs to be copied:
+
 ![alt text](./examples/backup_size.png "Time Machine Backup Size (GB)")
 
 3. The third graph shows how many items were already copied to the Backup drive and how much items in total needs to be copied:
+
 ![alt text](./examples/backup_items.png "Time Machine Backup Items")
 
 Besides the three graphs an additional CSV file is created containing all log entries in the following format:
