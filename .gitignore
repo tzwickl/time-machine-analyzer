@@ -149,3 +149,6 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+
+time_machine_log_entries.json
+time_machine_log_entries.csv

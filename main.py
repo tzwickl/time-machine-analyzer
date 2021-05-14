@@ -18,8 +18,8 @@ class TimeMachineLogEntry:
         self.bytes_per_second = 0
         self.items_per_second = 0
         self.last_path_seen = ""
-        # Regex Documentation: https://regex101.com/r/waxd6A/1
-        self.regex = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{6})?).*Copied (\d+(?:[,|.]\d+)? [kmgtp]?b).* of (\d+(?:[,|.]\d+)? [kmgtp]?b), (\d+).*of (\d+) items \(~((?:-|\d+(?:[,|.]\d+)?) [kmgtp]?b[/]s), (-|\d+(?:[,|.]\d+)?) items[/]s\).*-(.*)", re.IGNORECASE)
+        # Regex Documentation: https://regex101.com/r/dLQn9W/latest
+        self.regex = re.compile(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{6})?).*Copied (\d+(?:[,|.]\d+)? [kmgtp]?b).* of (\d+(?:[,|.]\d+)? [kmgtp]?b), (\d+).*of (\d+) items \(~((?:-|\d+(?:[,|.]\d+)?) [kmgtp]?b[/]s), (-|\d+(?:[,|.]\d+)?) items[/]s\).*- (.*)", re.IGNORECASE)
         self.parse_log_line(line)
 
     def __repr__(self) -> str:
@@ -105,6 +105,15 @@ class TimeMachineAnalyzer:
                         log_entry.last_path_seen
                     ])
 
+    def export_to_json(self) -> None:
+        with open('time_machine_log_entries.json', mode='w') as time_machine_log_entries:
+            log_entries = []
+            for log_entry in self.timeMachineLogEntries:
+                dict = log_entry.__dict__
+                del dict["regex"]
+                log_entries.append(dict)
+            time_machine_log_entries.write(json.dumps(log_entries, indent=4, sort_keys=True, default=str))
+
 if __name__ == '__main__':
     val = input("Enter time range <num>[m|h|d]: ")
     seconds = humanfriendly.parse_timespan(val)
@@ -114,3 +123,4 @@ if __name__ == '__main__':
     timeMachineAnalyzer.plot_graphs(["bytes_copied", "bytes_to_copy"], [1000000000, 1000000000], ['GB', 'GB'], ['Time Machine Backup Copied (GB)', 'Time Machine Backup Total (GB)'], [0, 0])
     timeMachineAnalyzer.plot_graphs(["items_copied", "items_to_copy"], [1, 1], ['items', 'items'], ['Time Machine Backup Items Copied (items)', 'Time Machine Backup Items Total (items)'], [0, 0])
     timeMachineAnalyzer.export_to_csv()
+    timeMachineAnalyzer.export_to_json()
